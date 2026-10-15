@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TDSE · Votación</title>
+<!-- TDSE 2026-2 · jueves 15-oct (láminas 7 y 12 del deck). Estudiante: esta URL. Proyector: ?modo=proyector.
+     Votos anónimos en ntfy.sh (canal T); cada celular cuenta una vez por pregunta: vale su último envío. -->
+<style>
+:root{--ink:#11162B;--vi:#6C4DFF;--bg:#F5F6FB;--line:#DDE0EE;--c1:#B9C0D9;--c2:#8C7BFF;--c3:#6C4DFF;--c4:#FF6B5B}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:18px 16px 60px}.k{color:var(--vi);font-weight:700;letter-spacing:1.5px;font-size:13px}
+h1{margin:4px 0 6px;font-size:26px}h2{font-size:20px;margin:28px 0 8px}p{margin:6px 0}
+.it{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}.it b{display:block;margin-bottom:8px}
+.op{display:grid;grid-template-columns:1fr 1fr;gap:6px}.op button{min-width:0;overflow-wrap:anywhere;font:inherit;font-size:15px;padding:10px 6px;border-radius:9px;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+.op button.on{background:var(--vi);border-color:var(--vi);color:#fff;font-weight:700}
+.send{width:100%;font:inherit;font-size:18px;font-weight:700;padding:14px;border:0;border-radius:12px;background:var(--ink);color:#fff;margin-top:8px}
+.send:disabled{opacity:.4}.ok{color:var(--vi);font-weight:700;min-height:1.4em}
+/* proyector */
+body.pro main{max-width:1500px}body.pro h1{font-size:40px}.tabs button{font:inherit;font-size:20px;padding:8px 16px;border-radius:10px;border:2px solid var(--ink);background:#fff;margin-right:8px}
+.tabs button.on{background:var(--ink);color:#fff}.row{display:grid;grid-template-columns:44% 1fr 90px;gap:14px;align-items:center;margin:12px 0;font-size:22px}
+.bar{display:flex;height:44px;border-radius:8px;overflow:hidden;background:#fff;border:1px solid var(--line)}.bar span{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;min-width:0}
+.leg{display:flex;gap:18px;flex-wrap:wrap;font-size:20px;margin:10px 0 4px}.leg i{display:inline-block;width:18px;height:18px;border-radius:4px;margin-right:6px;vertical-align:-2px}
+.div{color:var(--c4);font-weight:800;font-size:18px}.n{font-size:22px;color:#555}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const T = new URLSearchParams(location.search).get('t') || 'tdse-eb5453c46a36b778';
+const PRO = new URLSearchParams(location.search).get('modo') === 'proyector';
+const INI = ['Escanear el archivo histórico de certificados en papel', 'Firma electrónica de certificados', 'Aplicación móvil para inspectores',
+  'Automatizar la consolidación presupuestal: de 6 semanas a 1', 'Consolidar los dos sistemas de laboratorio en uno',
+  'Asistente con IA que responde a los clientes sobre el estado de sus certificados',
+  'Monitoreo continuo de los sensores del cliente, con alerta de no conformidad, cobrado por suscripción',
+  'Tablero regional con el dato tomado en la fuente, sin pedírselo a los países'];
+const OPI = ['Digitización', 'Digitalización', 'Transformación', 'Ninguna'];
+const ARR = ['Big Bang: todo en una fecha', 'Por olas: primero el dato y el gobierno, después vender', 'Con un piloto de cumplimiento continuo, ya', 'Primero el ahorro, después lo demás'];
+const COL = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+const app = document.getElementById('app');
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+if (!PRO) {
+  let dev; try { dev = localStorage.getItem('tdse_dev'); if (!dev) { dev = Math.random().toString(36).slice(2, 12); localStorage.setItem('tdse_dev', dev); } } catch { dev = Math.random().toString(36).slice(2, 12); }
+  const sel = { ini: {}, arr: {} };
+  const bloque = (q, titulo, items, ops) => '<h2>' + titulo + '</h2>' + items.map((t, i) => '<div class="it"><b>' + (items.length > 1 ? (i + 1) + '. ' : '') + esc(t) + '</b><div class="op">'
+    + ops.map((o, j) => '<button data-q="' + q + '" data-i="' + (i + 1) + '" data-o="' + j + '">' + esc(o) + '</button>').join('') + '</div></div>').join('')
+    + '<button class="send" id="s_' + q + '" disabled>Enviar</button><p class="ok" id="m_' + q + '"></p>';
+  app.innerHTML = '<div class="k">TDSE · NORVANTA · VOTACIÓN ANÓNIMA</div><h1>¿Qué es transformación?</h1><p>Cada uno decide solo. Pueden cambiar su voto y volver a enviar: cuenta el último.</p>'
+    + bloque('ini', 'Lámina 7 · Clasifiquen las 8 iniciativas', INI, OPI)
+    + bloque('arr', 'Lámina 12 · ¿Cómo arrancarían la transformación de Norvanta?', ['Elijan una opción'], ARR);
+  app.addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.q) {
+      sel[b.dataset.q][b.dataset.i] = +b.dataset.o;
+      b.parentNode.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      const q = b.dataset.q, need = q === 'ini' ? INI.length : 1;
+      document.getElementById('s_' + q).disabled = Object.keys(sel[q]).length < need;
+      document.getElementById('m_' + q).textContent = Object.keys(sel[q]).length < need ? 'Faltan ' + (need - Object.keys(sel[q]).length) + '.' : '';
+    } else if (b.id.startsWith('s_')) {
+      const q = b.id.slice(2), m = document.getElementById('m_' + q);
+      b.disabled = true; m.textContent = 'Enviando…';
+      try {
+        const r = await fetch('https://ntfy.sh/' + T, { method: 'POST', body: JSON.stringify({ d: dev, q, v: sel[q] }) });
+        if (!r.ok) throw new Error(r.status);
+        m.textContent = 'Voto recibido. Si lo cambian, envíen de nuevo.';
+      } catch (err) { m.textContent = 'No se pudo enviar. Intenten otra vez.'; }
+      b.disabled = false;
+    }
+  });
+} else {
+  document.body.classList.add('pro');
+  const ult = { ini: {}, arr: {} }; // último voto por celular
+  let tab = 'ini';
+  const recibir = (msg) => { try { const x = JSON.parse(msg); if (ult[x.q] && x.d) ult[x.q][x.d] = x.v; } catch {} };
+  const pintar = () => {
+    const votos = Object.values(ult[tab]), items = tab === 'ini' ? INI : ['¿Cómo arrancarían?'], ops = tab === 'ini' ? OPI : ARR;
+    let h = '<div class="k">TDSE · NORVANTA · RESULTADOS EN VIVO</div><h1>' + (tab === 'ini' ? 'Clasifiquen las 8 iniciativas' : '¿Cómo arrancarían la transformación de Norvanta?') + '</h1>'
+      + '<div class="tabs"><button data-t="ini" class="' + (tab === 'ini' ? 'on' : '') + '">Lámina 7</button><button data-t="arr" class="' + (tab === 'arr' ? 'on' : '') + '">Lámina 12</button>'
+      + '<span class="n">&nbsp; ' + votos.length + ' votos</span></div>'
+      + '<div class="leg">' + ops.map((o, j) => '<span><i style="background:' + COL[j] + '"></i>' + esc(o) + '</span>').join('') + '</div>';
+    items.forEach((t, i) => {
+      const c = [0, 0, 0, 0]; votos.forEach((v) => { if (v[i + 1] != null) c[v[i + 1]]++; });
+      const n = c.reduce((a, b) => a + b, 0), max = Math.max(...c);
+      const dividida = n > 0 && max / n < 0.7; // ponytail: 70% fijo; es solo la marca para discutir
+      h += '<div class="row"><div>' + (items.length > 1 ? '<b>' + (i + 1) + '.</b> ' : '') + esc(t) + '</div><div class="bar">'
+        + c.map((k, j) => k ? '<span style="width:' + (100 * k / n) + '%;background:' + COL[j] + '">' + k + '</span>' : '').join('') + '</div>'
+        + '<div class="div">' + (dividida ? 'dividida' : '') + '</div></div>';
+    });
+    app.innerHTML = h;
+  };
+  app.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; pintar(); } });
+  pintar();
+  // Lo acumulado (hasta 12 h) y después en vivo
+  fetch('https://ntfy.sh/' + T + '/json?poll=1&since=all').then((r) => r.text()).then((txt) => {
+    let desde = 'all';
+    txt.split('\n').forEach((l) => { if (l) { const e = JSON.parse(l); if (e.event === 'message') { recibir(e.message); desde = e.id; } } });
+    pintar();
+    const es = new EventSource('https://ntfy.sh/' + T + '/sse?since=' + desde);
+    es.onmessage = (ev) => { const e = JSON.parse(ev.data); if (e.event === 'message') { recibir(e.message); pintar(); } };
+  });
+}
+</script>
+</body>
+</html>
