@@ -71,13 +71,15 @@ if (!PRO) {
 } else {
   document.body.classList.add('pro');
   const ult = { ini: {}, arr: {} }; // último voto por celular
-  let tab = 'ini';
-  const recibir = (msg) => { try { const x = JSON.parse(msg); if (ult[x.q] && x.d) ult[x.q][x.d] = x.v; } catch {} };
+  let tab = new URLSearchParams(location.search).get('tab') === 'arr' ? 'arr' : 'ini';
+  // Reiniciar: el proyector ignora los votos anteriores al corte (ntfy no deja borrarlos; se borran solos a las 12 h)
+  let corte = 0; try { corte = +localStorage.getItem('tdse_corte_' + T) || 0; } catch {}
+  const recibir = (msg, t) => { if (t < corte) return; try { const x = JSON.parse(msg); if (ult[x.q] && x.d) ult[x.q][x.d] = x.v; } catch {} };
   const pintar = () => {
     const votos = Object.values(ult[tab]), items = tab === 'ini' ? INI : ['¿Cómo arrancarían?'], ops = tab === 'ini' ? OPI : ARR;
     let h = '<div class="k">TDSE · NORVANTA · RESULTADOS EN VIVO</div><h1>' + (tab === 'ini' ? 'Clasifiquen las 8 iniciativas' : '¿Cómo arrancarían la transformación de Norvanta?') + '</h1>'
       + '<div class="tabs"><button data-t="ini" class="' + (tab === 'ini' ? 'on' : '') + '">Lámina 7</button><button data-t="arr" class="' + (tab === 'arr' ? 'on' : '') + '">Lámina 12</button>'
-      + '<span class="n">&nbsp; ' + votos.length + ' votos</span></div>'
+      + '<span class="n">&nbsp; ' + votos.length + ' votos</span> <button data-r="1" style="float:right;font-size:16px">Reiniciar</button></div>'
       + '<div class="leg">' + ops.map((o, j) => '<span><i style="background:' + COL[j] + '"></i>' + esc(o) + '</span>').join('') + '</div>';
     items.forEach((t, i) => {
       const c = [0, 0, 0, 0]; votos.forEach((v) => { if (v[i + 1] != null) c[v[i + 1]]++; });
@@ -89,15 +91,22 @@ if (!PRO) {
     });
     app.innerHTML = h;
   };
-  app.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; pintar(); } });
+  app.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.t) { tab = b.dataset.t; pintar(); }
+    if (b.dataset.r && confirm('¿Borrar de la pantalla todos los votos hasta ahora? Los dos conteos empiezan de cero.')) {
+      corte = Math.floor(Date.now() / 1000); try { localStorage.setItem('tdse_corte_' + T, corte); } catch {}
+      ult.ini = {}; ult.arr = {}; pintar();
+    }
+  });
   pintar();
   // Lo acumulado (hasta 12 h) y después en vivo
   fetch('https://ntfy.sh/' + T + '/json?poll=1&since=all').then((r) => r.text()).then((txt) => {
     let desde = 'all';
-    txt.split('\n').forEach((l) => { if (l) { const e = JSON.parse(l); if (e.event === 'message') { recibir(e.message); desde = e.id; } } });
+    txt.split('\n').forEach((l) => { if (l) { const e = JSON.parse(l); if (e.event === 'message') { recibir(e.message, e.time); desde = e.id; } } });
     pintar();
     const es = new EventSource('https://ntfy.sh/' + T + '/sse?since=' + desde);
-    es.onmessage = (ev) => { const e = JSON.parse(ev.data); if (e.event === 'message') { recibir(e.message); pintar(); } };
+    es.onmessage = (ev) => { const e = JSON.parse(ev.data); if (e.event === 'message') { recibir(e.message, e.time); pintar(); } };
   });
 }
 </script>
